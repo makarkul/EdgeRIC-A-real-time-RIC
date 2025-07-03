@@ -1,6 +1,9 @@
-srsran-enb/build
-srsran-ue/build
-edgeric/muApp2/outputs
+# Build directories
+srsran-enb/build/
+srsran-ue/build/
+build/
+Build/
+CMAKE_BUILD/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -19,41 +22,25 @@ __pycache__/
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# macOS Thumbnails
 ._*
-
-# VS Code
-.vscode/
-
-# DevContainer
-.devcontainer/
-
-# Build directories
-build/
-Build/
-CMAKE_BUILD/
 
 # EdgeRIC specific
 log.txt
 dump.rdb
+edgeric/muApp2/outputs/
 
-# Docker/Container files
-Dockerfile
-*.code-workspace
+# Legacy scripts (moved to legacy_scripts/)
+legacy_scripts/
 
-# Scripts
-build_edgeric.sh
-build_edgeric_vscode.sh
-emergency_cleanup.sh
-make_ran_improved.sh
-start_container.sh
-start_edgeric.sh
-start_edgeric_with_screen.sh
-stop_edgeric.sh
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
 
-# Python requirements
-requirements.txt
+# Log files
+*.log
 
-# GNURadio files
-*.py
+# Core dumps
+core.*

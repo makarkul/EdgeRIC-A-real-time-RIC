@@ -9,6 +9,25 @@ Refer to how to run the repository: https://edgeric.github.io/edgeric-workshop-t
 
 ## Quick Start
 
+### VS Code Setup (Recommended)
+
+This repository includes VS Code configuration for easy development:
+
+1. **Clone and Open:**
+   ```bash
+   git clone <repository-url>
+   cd EdgeRIC-A-real-time-RIC
+   code .
+   ```
+
+2. **Install Recommended Extensions:**
+   - VS Code will prompt to install recommended extensions
+   - These include C/C++, Python, Docker, and Protocol Buffers support
+
+3. **Build with VS Code:**
+   - Press `Ctrl+Shift+P` → "Tasks: Run Build Task"
+   - Or use the "Build EdgeRIC" task from the Command Palette
+
 ### Building EdgeRIC
 
 **Recommended:** Use the unified build script for all builds:
@@ -23,10 +42,6 @@ This script will:
 - Build srsRAN eNB and UE components
 - Build EdgeRIC controller
 - Verify the build completed successfully
-
-### VS Code Integration
-
-If using VS Code, use the "Build EdgeRIC (Unified)" task (Ctrl+Shift+P → "Tasks: Run Task") which uses the same unified build script.
 
 ### Running EdgeRIC
 
