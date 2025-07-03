@@ -464,6 +464,13 @@ int mac_nr::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, u
   return SRSRAN_SUCCESS;
 }
 
+void mac_nr::rlc_latency_report(uint16_t rnti, uint32_t lcid, uint32_t latency_us)
+{
+  // For NR MAC, just log the latency for now
+  // In a full implementation, this would be forwarded to EdgeRIC-NR
+  logger.debug("Latency report for RNTI=0x%x, LCID=%d: %d us", rnti, lcid, latency_us);
+}
+
 void mac_nr::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr)
 {
   sched->ul_bsr(rnti, lcid, bsr);

@@ -211,4 +211,9 @@ void rlc_tm::set_bsr_callback(bsr_callback_t callback)
   bsr_callback = std::move(callback);
 }
 
+void rlc_tm::set_latency_callback(latency_callback_t callback)
+{
+  latency_callback = std::move(callback);
+}
+
 } // namespace srsran

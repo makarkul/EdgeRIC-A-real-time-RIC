@@ -74,6 +74,7 @@ public:
 
   // MAC interface for RLC
   int rlc_buffer_state(uint16_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue) override;
+  void rlc_latency_report(uint16_t rnti, uint32_t lcid, uint32_t latency_us) override;
 
   // Interface for PHY
   int         slot_indication(const srsran_slot_cfg_t& slot_cfg) override;

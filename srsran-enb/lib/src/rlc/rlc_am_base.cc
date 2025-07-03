@@ -222,6 +222,11 @@ void rlc_am::set_bsr_callback(bsr_callback_t callback)
   tx_base->set_bsr_callback(callback);
 }
 
+void rlc_am::set_latency_callback(latency_callback_t callback)
+{
+  tx_base->set_latency_callback(callback);
+}
+
 /*******************************************************
  *     RLC AM TX entity
  *     This class is used for common code between the
@@ -296,6 +301,11 @@ bool rlc_am::rlc_am_base_tx::sdu_queue_is_full()
 void rlc_am::rlc_am_base_tx::set_bsr_callback(bsr_callback_t callback)
 {
   bsr_callback = callback;
+}
+
+void rlc_am::rlc_am_base_tx::set_latency_callback(latency_callback_t callback)
+{
+  latency_callback = callback;
 }
 
 /*******************************************************

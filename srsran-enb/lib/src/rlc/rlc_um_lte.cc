@@ -160,6 +160,11 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
       RlcDebug("Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us",
                (uint64_t)latency_us,
                (long)mean_pdu_latency_us.value());
+      
+      // Report latency via callback if available
+      if (latency_callback) {
+        latency_callback(parent->get_lcid(), (uint32_t)latency_us);
+      }
 #else
       RlcDebug("%s Complete SDU scheduled for tx.", rb_name.c_str());
 #endif
@@ -198,6 +203,11 @@ uint32_t rlc_um_lte::rlc_um_lte_tx::build_data_pdu(unique_byte_buffer_t pdu, uin
       RlcDebug("Complete SDU scheduled for tx. Stack latency (last/average): %" PRIu64 "/%ld us",
                (uint64_t)latency_us,
                (long)mean_pdu_latency_us.value());
+      
+      // Report latency via callback if available
+      if (latency_callback) {
+        latency_callback(parent->get_lcid(), (uint32_t)latency_us);
+      }
 #else
       RlcDebug("Complete SDU scheduled for tx.");
 #endif

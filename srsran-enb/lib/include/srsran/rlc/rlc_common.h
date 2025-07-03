@@ -217,6 +217,7 @@ struct rlc_status_pdu_t {
 };
 
 typedef std::function<void(uint32_t, uint32_t, uint32_t)> bsr_callback_t;
+typedef std::function<void(uint32_t, uint32_t)> latency_callback_t;  // lcid, latency_us
 
 /****************************************************************************
  * RLC Common interface
@@ -299,6 +300,7 @@ public:
   virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes)               = 0;
 
   virtual void set_bsr_callback(bsr_callback_t callback) = 0;
+  virtual void set_latency_callback(latency_callback_t callback) = 0;
 
   void* operator new(size_t sz) { return allocate_rlc_bearer(sz); }
   void  operator delete(void* p) { return deallocate_rlc_bearer(p); }

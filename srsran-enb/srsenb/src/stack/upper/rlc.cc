@@ -116,7 +116,16 @@ void rlc::add_bearer(uint16_t rnti, uint32_t lcid, const srsran::rlc_config_t& c
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
+    // Add the bearer first
     users[rnti].rlc->add_bearer(lcid, cnfg);
+    
+    // Create latency callback that includes RNTI information
+    auto latency_callback = [this, rnti](uint32_t lcid, uint32_t latency_us) {
+      this->report_latency(rnti, lcid, latency_us);
+    };
+    
+    // Set the latency callback for the entire RLC instance
+    users[rnti].rlc->set_latency_callback(latency_callback);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -200,6 +209,13 @@ void rlc::update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t p
 {
   logger.debug("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d, prio_tx_queue=%d", rnti, lcid, tx_queue, prio_tx_queue);
   mac->rlc_buffer_state(rnti, lcid, tx_queue, prio_tx_queue);
+}
+
+void rlc::report_latency(uint16_t rnti, uint32_t lcid, uint32_t latency_us)
+{
+  if (mac) {
+    mac->rlc_latency_report(rnti, lcid, latency_us);
+  }
 }
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)

@@ -76,6 +76,7 @@ public:
   void                 reset_metrics();
 
   void set_bsr_callback(bsr_callback_t callback);
+  void set_latency_callback(latency_callback_t callback);
 
   uint32_t get_lcid() const { return lcid; }
 
@@ -100,6 +101,7 @@ protected:
     virtual uint32_t get_buffer_state() = 0;
 
     void set_bsr_callback(bsr_callback_t callback);
+    void set_latency_callback(latency_callback_t callback);
 
   protected:
     byte_buffer_pool*     pool = nullptr;
@@ -107,6 +109,7 @@ protected:
     std::string           rb_name;
     rlc_um_base*          parent = nullptr;
     bsr_callback_t        bsr_callback;
+    latency_callback_t    latency_callback;
 
     rlc_config_t cfg = {};
 

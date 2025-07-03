@@ -100,6 +100,9 @@ private:
 
   void update_bsr(uint32_t rnti, uint32_t lcid, uint32_t tx_queue, uint32_t retx_queue);
 
+  // Add latency reporting method
+  void report_latency(uint16_t rnti, uint32_t lcid, uint32_t latency_us);
+
   pthread_rwlock_t rwlock;
 
   std::map<uint32_t, user_interface> users;
