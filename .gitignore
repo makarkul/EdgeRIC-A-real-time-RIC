@@ -24,7 +24,7 @@ __pycache__/
 .LSOverride
 ._*
 
-# EdgeRIC specific
+# EdgeRIC specific runtime files
 log.txt
 dump.rdb
 edgeric/muApp2/outputs/
@@ -44,3 +44,7 @@ legacy_scripts/
 
 # Core dumps
 core.*
+
+# Editor files
+*.orig
+.vscode/workspace.json
