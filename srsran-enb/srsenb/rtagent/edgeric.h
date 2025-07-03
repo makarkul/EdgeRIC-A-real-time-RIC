@@ -26,6 +26,7 @@ private:
     static std::map<uint16_t, float> rx_bytes_ues;
     static std::map<uint16_t, float> tx_bytes_ues;
     static std::map<uint16_t, uint32_t> backlogBufferDL;
+    static std::map<uint16_t, uint32_t> latency_ues;  // Add latency data structure
 
     
     static bool initialized;
@@ -49,6 +50,7 @@ public:
     static void setRXbytes(const std::map<uint16_t, float>& rx_bytes) { rx_bytes_ues = rx_bytes; }
     static void setTXbytes(const std::map<uint16_t, float>& tx_bytes) { tx_bytes_ues = tx_bytes; }
     static void setbacklogDL(const std::map<uint16_t, uint32_t>& BL) { backlogBufferDL = BL; }
+    static void setLatency(const std::map<uint16_t, uint32_t>& latency) { latency_ues = latency; }  // Add latency setter
 
     //////////////////////////////////// ZMQ function to send RT-E2 Report 
     static void printmyvariables();

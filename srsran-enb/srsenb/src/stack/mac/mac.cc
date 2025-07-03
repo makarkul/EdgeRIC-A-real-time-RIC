@@ -50,10 +50,11 @@ using namespace asn1::rrc;
 int                          tti_ran_index = 0;
 uint32_t er_ran_index = 0;
 std::map<uint16_t, float>    snr_ul_ues;
-std::map<uint16_t, uint32_t>    cqi_dl_ues;
+std::map<uint16_t, uint32_t> cqi_dl_ues;
 std::map<uint16_t, float>    rx_bytes_ues;
 std::map<uint16_t, float>    tx_bytes_ues;
 std::map<uint16_t, uint32_t> pending_data;
+std::map<uint16_t, uint32_t> latency_ues;  // Add latency map
 
 namespace srsenb {
 
@@ -681,6 +682,14 @@ void mac::ric_comm()
   // rx_bytes_ues.clear();
   edgeric::setTXbytes(tx_bytes_ues);
   // tx_bytes_ues.clear();
+  
+  // Populate latency with dummy values for now
+  latency_ues.clear();
+  for (auto& u : ue_db) {
+    uint16_t rnti = u.first;
+    latency_ues[rnti] = 100 + (rnti % 50);  // Dummy latency: 100-149 ms based on RNTI
+  }
+  edgeric::setLatency(latency_ues);
 
   edgeric::printmyvariables();
   edgeric::send_to_er_protobuf();
