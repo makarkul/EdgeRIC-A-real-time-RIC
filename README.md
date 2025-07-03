@@ -5,4 +5,66 @@ Refer to full paper: https://www.usenix.org/system/files/nsdi24-ko.pdf
 
 Refer to EdgeRIC documentation: https://edgeric.github.io/
 
-Refer to how to run the reposiry: https://edgeric.github.io/edgeric-workshop-tutorial.html
+Refer to how to run the repository: https://edgeric.github.io/edgeric-workshop-tutorial.html
+
+## Quick Start
+
+### Building EdgeRIC
+
+**Recommended:** Use the unified build script for all builds:
+
+```bash
+./build.sh
+```
+
+This script will:
+- Start the development container if needed
+- Generate all protobuf files
+- Build srsRAN eNB and UE components
+- Build EdgeRIC controller
+- Verify the build completed successfully
+
+### VS Code Integration
+
+If using VS Code, use the "Build EdgeRIC (Unified)" task (Ctrl+Shift+P → "Tasks: Run Task") which uses the same unified build script.
+
+### Running EdgeRIC
+
+After building, start the complete EdgeRIC setup:
+
+```bash
+./start_edgeric_with_screen.sh bridge test
+```
+
+### Legacy Build Scripts
+
+The following legacy build scripts are still available but deprecated:
+- `build_edgeric.sh` / `build_edgeric_vscode.sh` - Legacy build scripts
+- `make_ran.sh` / `make_ran_improved.sh` - Direct container build scripts
+
+**Note:** These may not include all the latest protobuf generation steps. Use `build.sh` for the most reliable build process.
+
+## Features
+
+### Latency Monitoring
+
+EdgeRIC now includes latency monitoring capabilities:
+- Real-time latency metrics collection from srsRAN eNB
+- Latency data display in EdgeRIC Python controller
+- Integrated protobuf messaging for latency values
+
+## Development
+
+### Repository Structure
+
+- `edgeric/` - EdgeRIC controller and ML components
+- `srsran-enb/` - Modified srsRAN eNB with EdgeRIC integration
+- `srsran-ue/` - Modified srsRAN UE components
+- `traffic-generator/` - Network traffic generation tools
+- `build.sh` - Unified build script (recommended)
+
+### Contributing
+
+1. Use `build.sh` for all builds to ensure consistency
+2. Run tests after making changes
+3. Follow the protobuf integration patterns for new metrics
