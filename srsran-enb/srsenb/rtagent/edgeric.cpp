@@ -11,8 +11,10 @@ std::map<uint16_t, uint32_t> edgeric::cqi_dl_ues = {};
 std::map<uint16_t, float> edgeric::rx_bytes_ues = {};
 std::map<uint16_t, float> edgeric::tx_bytes_ues = {};
 std::map<uint16_t, uint32_t> edgeric::backlogBufferDL = {};
+std::map<uint16_t, uint32_t> edgeric::latency_ues = {};  // Initialize latency map
 
-bool edgeric::enable_logging = false; // Initialize logging flag to false
+// Initialize logging flag to false for production
+bool edgeric::enable_logging = false; // Set to false for production
 
 zmq::context_t context;
 zmq::socket_t publisher(context, ZMQ_PUB);
@@ -94,6 +96,11 @@ void edgeric::printmyvariables() {
                 logfile << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
             }
 
+            logfile << "Latency UEs:" << std::endl;
+            for (const auto& pair : latency_ues) {
+                logfile << "Key: " << pair.first << ", Value: " << pair.second << std::endl;
+            }
+
             logfile.close();
         } else {
             std::cerr << "Unable to open log file" << std::endl;
@@ -168,7 +175,7 @@ void edgeric::send_to_er_protobuf() {
         float snr = snr_ul_ues[rnti];
         uint32_t pending_data = pending_data_ues[rnti];
         float tx_bytes = tx_bytes_ues[rnti];
-        float rx_bytes = rx_bytes_ues[rnti];
+        float rx_bytes = rx_bytes_ues[rnti];        uint32_t latency = latency_ues[rnti];  // Get latency for this UE
 
         UeMetrics* ue_metrics = metrics_msg.add_ue_metrics();
         ue_metrics->set_rnti(rnti);
@@ -178,6 +185,7 @@ void edgeric::send_to_er_protobuf() {
         ue_metrics->set_pending_data(pending_data);
         ue_metrics->set_tx_bytes(tx_bytes);
         ue_metrics->set_rx_bytes(rx_bytes);
+        ue_metrics->set_latency(latency);  // Set latency in protobuf message
     }
 
     std::string serialized_msg;

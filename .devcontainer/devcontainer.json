@@ -1,0 +1,36 @@
+{
+  "name": "EdgeRIC Container",
+  "image": "nlpurnhyun/edgeric_base_oaic",
+  "workspaceFolder": "/home/EdgeRIC-A-real-time-RIC",
+  "privileged": true,
+  "runArgs": [
+    "--network=bridge",
+    "--privileged=true",
+    "-e", "DISPLAY=${localEnv:DISPLAY}",
+    "--env=NVIDIA_DRIVER_CAPABILITiES=all",
+    "--env=NVIDIA-VISIBLE_DEVICES=all",
+    "--env=QT_X11_NO_MITSHM=1",
+    "-v", "/tmp/.X11-unix:/tmp/.X11-unix:rw",
+    "-v", "/dev:/dev"
+  ],
+  "mounts": [
+    "source=${localWorkspaceFolder},target=/home/EdgeRIC-A-real-time-RIC,type=bind,consistency=cached"
+  ],
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.terminal.activateEnvironment": false
+      },
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  "postCreateCommand": "apt update -y && apt install -y screen vim git && pip3 install debugpy",
+  "forwardPorts": [5000, 8888, 5678],
+  "remoteUser": "root"
+}

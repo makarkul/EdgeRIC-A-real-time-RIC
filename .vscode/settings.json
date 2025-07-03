@@ -1,0 +1,46 @@
+{
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "terminal.integrated.profiles.linux": {
+        "bash": {
+            "path": "/bin/bash",
+            "args": []
+        }
+    },
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    "python.defaultInterpreterPath": "/usr/bin/python3",
+    "python.terminal.activateEnvironment": false,
+    "files.exclude": {
+        "**/.DS_Store": true,
+        "**/dump.rdb": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/build": true,
+        "legacy_scripts/": true
+    },
+    "search.exclude": {
+        "**/build": true,
+        "**/__pycache__": true,
+        "legacy_scripts/": true
+    },
+    "files.watcherExclude": {
+        "**/node_modules/**": true,
+        "**/.git/objects/**": true,
+        "**/.git/subtree-cache/**": true,
+        "**/build/**": true,
+        "**/logs/**": true,
+        "**/outputs/**": true,
+        "legacy_scripts/**": true
+    },
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/srsran-enb/lib/include",
+        "${workspaceFolder}/srsran-enb/srsenb/rtagent",
+        "${workspaceFolder}/srsran-ue/lib/include"
+    ],
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc",
+    "C_Cpp.default.cStandard": "c11",
+    "C_Cpp.default.cppStandard": "c++11",
+    "protobuf.compile.python.out": ".",
+    "files.associations": {
+        "*.proto": "proto3"
+    }
+}

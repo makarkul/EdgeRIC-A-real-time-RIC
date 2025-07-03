@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "EdgeRIC PPO Training",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/edgeric/muApp2/muApp2_train_RL_DL_scheduling.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/edgeric/muApp2",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            },
+            "args": [
+                "--learning-rate", "3e-3",
+                "--min-batch-size", "2048",
+                "--num-threads", "1"
+            ]
+        },
+        {
+            "name": "EdgeRIC Debug with Attach",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}",
+                    "remoteRoot": "/home/EdgeRIC-A-real-time-RIC"
+                }
+            ]
+        },
+        {
+            "name": "muApp1 DL Scheduling",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/edgeric/muApp1/muApp1_run_DL_scheduling.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/edgeric/muApp1",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
+            "name": "muApp3 Monitor",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/edgeric/muApp3/muApp3_monitor_terminal.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/edgeric/muApp3",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        }
+    ]
+}

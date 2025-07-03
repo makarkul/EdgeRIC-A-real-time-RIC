@@ -1,0 +1,118 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build EdgeRIC",
+            "type": "shell",
+            "command": "./build.sh",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build EdgeRIC (Clean)",
+            "type": "shell",
+            "command": "./build.sh",
+            "args": ["clean"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Start EdgeRIC",
+            "type": "shell",
+            "command": "./start_edgeric_with_screen.sh",
+            "args": ["bridge", "test"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Stop EdgeRIC",
+            "type": "shell",
+            "command": "./stop_edgeric.sh",
+            "args": ["test"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Check EdgeRIC Status",
+            "type": "shell",
+            "command": "docker",
+            "args": ["ps", "--filter", "name=edgeric"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Open EdgeRIC Terminal",
+            "type": "shell",
+            "command": "docker",
+            "args": ["exec", "-it", "edgeric_test", "/bin/bash"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Attach to EdgeRIC Screen",
+            "type": "shell",
+            "command": "docker",
+            "args": ["exec", "-it", "edgeric_test", "screen", "-r", "edgeric"],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Emergency Cleanup",
+            "type": "shell",
+            "command": "./emergency_cleanup.sh",
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "new"
+            },
+            "problemMatcher": []
+        }
+    ]
+}

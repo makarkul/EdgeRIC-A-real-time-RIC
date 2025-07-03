@@ -204,6 +204,7 @@ def get_metrics_multi_monitor():
         pending_data = ue_metric.pending_data
         tx_bytes = ue_metric.tx_bytes
         rx_bytes = ue_metric.rx_bytes
+        latency = ue_metric.latency
 
         if rnti not in ue_dict:
             ue_dict[rnti] = {
@@ -212,7 +213,8 @@ def get_metrics_multi_monitor():
                 'Backlog': None,
                 'Pending Data': None,
                 'Tx_brate': None,
-                'Rx_brate': None
+                'Rx_brate': None,
+                'Latency': None
             }
 
         ue_dict[rnti]['CQI'] = cqi
@@ -221,6 +223,7 @@ def get_metrics_multi_monitor():
         ue_dict[rnti]['Tx_brate'] = tx_bytes
         ue_dict[rnti]['Rx_brate'] = rx_bytes
         ue_dict[rnti]['Pending Data'] = pending_data
+        ue_dict[rnti]['Latency'] = latency
 
     ue_data = ue_dict
 

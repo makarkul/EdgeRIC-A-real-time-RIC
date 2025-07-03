@@ -1,3 +1,50 @@
-srsran-enb/build
-srsran-ue/build
-edgeric/muApp2/outputs
+# Build directories
+srsran-enb/build/
+srsran-ue/build/
+build/
+Build/
+CMAKE_BUILD/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Protobuf generated files
+*_pb2.py
+*.pb.h
+*.pb.cc
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# EdgeRIC specific runtime files
+log.txt
+dump.rdb
+edgeric/muApp2/outputs/
+
+# Legacy scripts (moved to legacy_scripts/)
+legacy_scripts/
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+
+# Core dumps
+core.*
+
+# Editor files
+*.orig
+.vscode/workspace.json

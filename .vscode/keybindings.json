@@ -1,0 +1,32 @@
+[
+    {
+        "key": "ctrl+shift+e",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Start EdgeRIC Complete Setup"
+    },
+    {
+        "key": "ctrl+shift+q",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Stop EdgeRIC"
+    },
+    {
+        "key": "ctrl+shift+a",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Attach to EdgeRIC Screen"
+    },
+    {
+        "key": "ctrl+shift+t",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Open EdgeRIC Terminal"
+    },
+    {
+        "key": "ctrl+shift+b",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Build EdgeRIC"
+    },
+    {
+        "key": "ctrl+shift+alt+b",
+        "command": "workbench.action.tasks.runTask",
+        "args": "Build EdgeRIC (Clean)"
+    }
+]
