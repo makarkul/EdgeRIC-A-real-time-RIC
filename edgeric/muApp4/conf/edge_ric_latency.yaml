@@ -1,0 +1,56 @@
+defaults:
+  - _self_
+
+exp:
+  name: "latency_optimization"
+
+algorithm: "PPO"
+num_seeds: 1 # Number of seeded trains
+num_iters: 100 # Number of iterations to train for
+num_eval_episodes: 2000 # Number of evaluation episodes to test for (to compare against baseline agents)
+
+env: "EdgeRIC_Latency"
+
+env_config:
+  augment_state_space: True # Add latency metrics to state space
+  delay_state: 0
+  delay_action: 0
+  seed: -1 # No seed
+  T: 5000
+  num_RBGs: 17 # Modify according to MHz of operation?
+  num_UEs: 2
+  backlog_population: 
+    - [1, 3000] # TTIs between chunk arrivals ,chunk_size(bytes) - UE1
+    - [1, 3000] # TTIs between chunk arrivals ,chunk_size(bytes) - UE2
+
+  cqi_trace: "stream_rl/envs/cqi_traces/data_triangle.csv" # Train Trace for 2 UEs
+  cqi_trace_eval: "stream_rl/envs/cqi_traces/data_triangle.csv" # Eval Trace for 2 UEs
+  reward: "negative_latency"  # Use latency-based reward
+  base_station:
+    max_len: 300000 # Bytes
+  
+  # Latency-specific parameters
+  latency_config:
+    target_latency: 10000  # Target latency in microseconds (10ms)
+    latency_penalty_weight: 1.0  # Weight for latency penalty
+    throughput_weight: 0.1  # Small weight for throughput to maintain QoS
+    max_latency_penalty: 1000  # Maximum penalty for high latency
+  
+  cqi_map: {    # [Mean throughput, Std] (Mbps)
+            0 : [0, 0],
+            1 : [0.4432, 0.2206],
+            2 : [0.6394, 0.2047],
+            3 : [0.6990, 0.3575],
+            4 : [0.9112, 0.2882],
+            5 : [1.0014, 0.4647],
+            6 : [1.3261, 0.3873],
+            7 : [1.5028, 0.5879],
+            8 : [1.9077, 0.3314],
+            9 : [2.0347, 0.3120],
+            10 : [2.0542, 0.3142],
+            11 : [2.0479, 0.3019],
+            12 : [2.0517, 0.3086],
+            13 : [2.0303, 0.3170],
+            14 : [2.0239, 0.3053],
+            15 : [2.0477, 0.2942],
+            }
