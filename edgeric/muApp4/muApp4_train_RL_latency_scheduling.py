@@ -258,11 +258,17 @@ def main(conf):
             # Save best model based on reward (which includes latency optimization)
             if max(ppo_rewards) == log_eval["avg_reward"]/5000:
                 torch.save(policy_net, os.path.join(output_dir, "model_best.pt"))
+                # Also save for muApp5 deployment
+                muapp5_model_path = os.path.join("..", "muApp5", "muApp5_trained_model.pt")
+                torch.save(policy_net, muapp5_model_path)
+                print(f"✅ Best model saved for muApp5 at: {muapp5_model_path}")
+                
                 # Also save latency-specific info
                 with open(os.path.join(output_dir, "best_model_info.txt"), "w") as f:
                     f.write(f"Best model at iteration {i_iter}\n")
                     f.write(f"Reward: {log_eval['avg_reward']}\n")
                     f.write(f"Average Latency: {avg_latency}μs\n")
+                    f.write(f"Deployed to muApp5: {muapp5_model_path}\n")
 
             # Save model checkpoints
             if (

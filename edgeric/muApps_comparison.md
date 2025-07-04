@@ -9,8 +9,8 @@ EdgeRIC includes five different muApps, each designed for specific use cases and
 | **muApp1** | Real-time inference | [BL, CQI, MB] | Pre-trained model | Load model | ✅ (offline) |
 | **muApp2** | RL training | [BL, CQI, MB] | Throughput | Train model | ✅ (online) |
 | **muApp3** | Baselines | [BL, CQI, MB] | Various algorithms | Direct | ❌ |
-| **muApp4** | Latency RL training | [BL, CQI, LAT, MB, LP] | Latency (training) | Train → Convert | ✅ (online) |
-| **muApp5** | Real-time latency | [BL, CQI, MB] | Latency (real-time) | Direct | ❌ |
+| **muApp4** | Latency RL training | [BL, CQI, LAT, MB, LP] | Latency (training) | Train → muApp5 | ✅ (online) |
+| **muApp5** | Latency inference | [BL, CQI, MB] → [BL, CQI, LAT, MB, LP] | Latency (inference) | Load muApp4 model | ✅ (from muApp4) |
 
 ## Detailed Comparison
 
@@ -38,19 +38,33 @@ EdgeRIC includes five different muApps, each designed for specific use cases and
 - **Cons**: Complex training, requires model conversion for deployment
 - **Use case**: When you need the best possible latency optimization and can invest in training
 
-### muApp5: Real-time Latency Optimization ⭐
-- **Best for**: Immediate latency optimization deployment
-- **Pros**: No training needed, real-time adaptation, interpretable
-- **Cons**: Algorithmic (not learned), may not be optimal for all scenarios
-- **Use case**: When you need latency optimization NOW without training overhead
+### muApp5: Latency Model Inference ⭐
+- **Best for**: Production latency optimization with trained models
+- **Pros**: Sophisticated learned behavior, automatic model loading, robust fallback
+- **Cons**: Requires muApp4 training first
+- **Use case**: When you want the best latency optimization with learned intelligence
 
 ## Usage Recommendations
 
 ### For Latency-Sensitive Applications:
 
-1. **Quick deployment**: Use **muApp5** → Immediate latency optimization
-2. **Best performance**: Use **muApp4** → Train optimal models → Deploy via muApp1
+1. **Best performance**: Use **muApp4** → Train models → **muApp5** → Deploy with learned optimization
+2. **Quick start**: Use **muApp5** with algorithmic fallback → Train muApp4 models → Upgrade
 3. **Baseline comparison**: Use **muApp3** → Establish performance baselines
+
+### Recommended Pipeline:
+
+```bash
+# Step 1: Train latency-optimized model
+cd muApp4
+python muApp4_train_RL_latency_scheduling.py --num-epochs 100
+
+# Step 2: Deploy with trained model  
+cd ../muApp5
+python muApp5_latency_scheduler.py --episodes 10000
+
+# The model is automatically loaded from muApp4 training output
+```
 
 ### For Throughput-Focused Applications:
 

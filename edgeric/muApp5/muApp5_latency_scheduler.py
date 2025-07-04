@@ -3,14 +3,14 @@
 muApp5: Real-time Latency-Optimized Scheduler
 ==============================================
 
-This muApp provides real-time scheduling decisions optimized for latency
-using the same state space as muApp1 (no conversion needed).
+This muApp uses trained models from muApp4 for real-time latency-optimized scheduling.
+It loads the latency-optimized model and applies it to live EdgeRIC data.
 
 Key features:
-- Direct integration with muApp1's state format
-- Real-time latency estimation and optimization
-- Adaptive scheduling based on backlog, CQI, and inferred latency
-- No model conversion required
+- Uses trained models from muApp4 (latency-optimized)
+- Real-time inference with latency optimization
+- Same state space as muApp1 but with latency focus
+- Automatic model loading and deployment
 """
 
 import argparse
@@ -22,6 +22,7 @@ from datetime import datetime
 from threading import Thread
 import numpy as np
 import time
+import torch
 
 import redis
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -30,101 +31,179 @@ from edgeric_messenger import *
 # Global variables for tracking metrics
 total_brate = []
 avg_CQIs = []
-latency_history = deque(maxlen=100)  # Rolling window for latency estimation
-ue_priorities = defaultdict(float)  # Track UE priorities over time
-backlog_history = defaultdict(lambda: deque(maxlen=10))  # Track backlog changes
+latency_history = deque(maxlen=100)
 
-
-class LatencyOptimizedScheduler:
+class LatencyModelScheduler:
     """
-    Real-time latency-optimized scheduler that works directly with muApp1 state space
+    Real-time scheduler using latency-optimized models from muApp4
     """
     
-    def __init__(self, config=None):
+    def __init__(self, model_path=None, config=None):
         self.config = config or {
-            'target_latency_ms': 10,  # Target latency in milliseconds
-            'backlog_weight': 0.3,    # Weight for backlog in scheduling decision
-            'cqi_weight': 0.4,        # Weight for CQI in scheduling decision
-            'latency_weight': 0.3,    # Weight for latency priority
-            'fairness_factor': 0.1,   # Fairness adjustment
-            'history_window': 10,     # Window size for trend analysis
+            'default_latency_ms': 10,  # Default latency estimate when not available
+            'model_path': model_path or 'muApp5_trained_model.pt',
+            'use_algorithmic_fallback': True,  # Fallback to algorithmic if model fails
         }
         
-        # Initialize tracking variables
-        self.ue_latency_estimates = {}
-        self.ue_service_history = defaultdict(lambda: deque(maxlen=20))
-        self.last_scheduling_time = time.time()
+        # Load the trained model
+        self.model = None
+        self.load_model()
         
-    def estimate_latency(self, ue_id, backlog, cqi, buffer_size):
-        """
-        Estimate latency for a UE based on current conditions
+        # Fallback algorithmic scheduler
+        self.algorithmic_scheduler = AlgorithmicLatencyScheduler()
         
-        Latency estimation considers:
-        - Backlog size (more backlog = higher latency)
-        - CQI (better channel = lower latency)
-        - Historical service patterns
-        """
+        # Tracking variables
+        self.model_success_count = 0
+        self.model_failure_count = 0
+        self.use_model = True
         
-        # Base latency estimation
-        # Higher backlog increases latency
-        backlog_factor = min(backlog / 100000, 5.0)  # Normalize backlog
+    def load_model(self):
+        """Load the trained latency-optimized model from muApp4"""
         
-        # Better CQI reduces latency
-        cqi_factor = max(1.0, 15.0 - cqi) / 15.0
+        model_path = self.config['model_path']
         
-        # Historical service factor
-        recent_services = list(self.ue_service_history[ue_id])
-        if recent_services:
-            avg_service_interval = np.mean(recent_services) if recent_services else 1.0
-            service_factor = min(avg_service_interval / 1000, 2.0)  # Normalize
+        # Try multiple possible locations
+        possible_paths = [
+            model_path,
+            os.path.join(os.path.dirname(__file__), model_path),
+            os.path.join(os.path.dirname(__file__), '..', 'muApp4', 'outputs', '**', 'model_best.pt'),
+            os.path.join(os.path.dirname(__file__), 'muApp5_trained_model.pt')
+        ]
+        
+        for path in possible_paths:
+            if '*' in path:
+                # Handle wildcard paths
+                import glob
+                matches = glob.glob(path, recursive=True)
+                if matches:
+                    path = matches[0]  # Use the first match
+                else:
+                    continue
+            
+            if os.path.exists(path):
+                try:
+                    print(f"📦 Loading model from: {path}")
+                    self.model = torch.load(path, map_location=torch.device('cpu'))
+                    self.model.eval()
+                    print(f"✅ Model loaded successfully")
+                    return
+                except Exception as e:
+                    print(f"❌ Error loading model from {path}: {e}")
+                    continue
+        
+        print(f"⚠️  No trained model found. Available options:")
+        print(f"   1. Train a model using muApp4")
+        print(f"   2. Use algorithmic fallback")
+        
+        if self.config['use_algorithmic_fallback']:
+            print(f"🔄 Using algorithmic fallback scheduler")
+            self.use_model = False
         else:
-            service_factor = 1.0
-        
-        # Combined latency estimate (in milliseconds)
-        estimated_latency = (
-            self.config['target_latency_ms'] * 
-            (1 + backlog_factor * cqi_factor * service_factor)
-        )
-        
-        # Store estimate for this UE
-        self.ue_latency_estimates[ue_id] = estimated_latency
-        
-        return estimated_latency
+            raise FileNotFoundError(f"No model found and algorithmic fallback disabled")
     
-    def calculate_latency_priority(self, ue_id, backlog, cqi, buffer_size):
+    def get_model_input(self, ue_data):
         """
-        Calculate latency-based priority for scheduling
+        Convert UE data to model input format
         
-        Higher priority = more urgent for latency optimization
+        For muApp4 trained models, we need: [BL, CQI, LAT, MB, LP] per UE
+        But we only have [BL, CQI, MB] from real system, so we estimate LAT and LP
         """
         
-        # Estimate current latency
-        estimated_latency = self.estimate_latency(ue_id, backlog, cqi, buffer_size)
+        if not ue_data:
+            return None
         
-        # Priority factors
-        latency_urgency = max(0, estimated_latency - self.config['target_latency_ms'])
-        backlog_urgency = min(backlog / buffer_size, 1.0) if buffer_size > 0 else 0
-        channel_opportunity = cqi / 15.0  # Normalize CQI
+        num_ues = len(ue_data)
         
-        # Combined priority score
-        priority = (
-            self.config['latency_weight'] * latency_urgency +
-            self.config['backlog_weight'] * backlog_urgency +
-            self.config['cqi_weight'] * channel_opportunity
-        )
+        # Extract available metrics
+        RNTIs = list(ue_data.keys())
+        CQIs = [data['CQI'] for data in ue_data.values()]
+        BLs = [data['Backlog'] for data in ue_data.values()]
         
-        return priority
+        # Use default buffer size (same as muApp1)
+        MBs = [300000] * num_ues
+        
+        # Estimate latency (simple heuristic)
+        estimated_latencies = []
+        for i in range(num_ues):
+            # Estimate latency based on backlog and CQI
+            backlog_factor = min(BLs[i] / 100000, 2.0)  # Normalize backlog
+            cqi_factor = max(1.0, 15.0 - CQIs[i]) / 15.0  # Better CQI = lower latency
+            estimated_latency = self.config['default_latency_ms'] * 1000 * (1 + backlog_factor * cqi_factor)  # Convert to microseconds
+            estimated_latencies.append(estimated_latency)
+        
+        # Calculate latency priorities (CQI * Latency)
+        latency_priorities = [CQIs[i] * estimated_latencies[i] for i in range(num_ues)]
+        
+        # Create model input: [BL1, CQI1, LAT1, MB1, LP1, BL2, CQI2, LAT2, MB2, LP2, ...]
+        model_input = []
+        for i in range(num_ues):
+            model_input.extend([
+                BLs[i],
+                CQIs[i], 
+                estimated_latencies[i],
+                MBs[i],
+                latency_priorities[i]
+            ])
+        
+        return np.array(model_input, dtype=np.float32)
     
-    def calculate_scheduling_weights(self, ue_data):
-        """
-        Calculate scheduling weights optimized for latency
+    def get_scheduling_weights(self, ue_data):
+        """Get scheduling weights using the trained model or algorithmic fallback"""
         
-        Args:
-            ue_data: Dictionary with UE metrics {rnti: {CQI, Backlog, Tx_brate, ...}}
+        if not ue_data:
+            return np.array([])
         
-        Returns:
-            weights: Array of [RNTI, weight, RNTI, weight, ...]
-        """
+        num_ues = len(ue_data)
+        weights = np.zeros(num_ues * 2)
+        RNTIs = list(ue_data.keys())
+        
+        try:
+            if self.use_model and self.model is not None:
+                # Use trained model
+                model_input = self.get_model_input(ue_data)
+                if model_input is not None:
+                    # Convert to tensor
+                    input_tensor = torch.from_numpy(model_input).unsqueeze(0)
+                    
+                    # Get action from model
+                    with torch.no_grad():
+                        action = self.model.select_action(input_tensor)
+                        action = torch.squeeze(action).numpy()
+                    
+                    # Convert action to weights
+                    if len(action) == num_ues:
+                        normalized_action = action / np.sum(action) if np.sum(action) > 0 else np.ones(num_ues) / num_ues
+                        
+                        # Fill weights array
+                        for i in range(num_ues):
+                            weights[i * 2] = RNTIs[i]
+                            weights[i * 2 + 1] = normalized_action[i]
+                        
+                        self.model_success_count += 1
+                        return weights
+                    else:
+                        print(f"⚠️  Model output size mismatch: got {len(action)}, expected {num_ues}")
+                        
+            # Fallback to algorithmic scheduler
+            self.model_failure_count += 1
+            return self.algorithmic_scheduler.get_scheduling_weights(ue_data)
+            
+        except Exception as e:
+            print(f"❌ Model inference error: {e}")
+            self.model_failure_count += 1
+            return self.algorithmic_scheduler.get_scheduling_weights(ue_data)
+
+
+class AlgorithmicLatencyScheduler:
+    """
+    Fallback algorithmic scheduler for when model is not available
+    """
+    
+    def __init__(self):
+        self.ue_service_history = defaultdict(lambda: deque(maxlen=20))
+        
+    def get_scheduling_weights(self, ue_data):
+        """Calculate scheduling weights using latency-focused algorithm"""
         
         if not ue_data:
             return np.array([])
@@ -137,84 +216,44 @@ class LatencyOptimizedScheduler:
         CQIs = [data['CQI'] for data in ue_data.values()]
         BLs = [data['Backlog'] for data in ue_data.values()]
         
-        # Calculate priorities for each UE
+        # Calculate latency-based priorities
         priorities = []
-        for i, rnti in enumerate(RNTIs):
-            buffer_size = 300000  # Default buffer size (same as muApp1)
-            priority = self.calculate_latency_priority(
-                rnti, BLs[i], CQIs[i], buffer_size
-            )
+        for i in range(num_ues):
+            # Priority based on backlog urgency and channel quality
+            backlog_urgency = min(BLs[i] / 100000, 1.0)  # Normalize backlog
+            channel_quality = CQIs[i] / 15.0  # Normalize CQI
+            
+            # Higher priority for high backlog and good channel
+            priority = backlog_urgency * 0.6 + channel_quality * 0.4
             priorities.append(priority)
-            
-            # Update service history
-            current_time = time.time()
-            if rnti in self.ue_service_history:
-                last_service = self.ue_service_history[rnti][-1] if self.ue_service_history[rnti] else current_time
-                service_interval = current_time - last_service
-                self.ue_service_history[rnti].append(service_interval)
-            else:
-                self.ue_service_history[rnti].append(0)
         
-        # Convert priorities to weights
+        # Normalize priorities to weights
         priorities = np.array(priorities)
-        
-        # Avoid division by zero
-        if np.sum(priorities) == 0:
-            # Equal weights if no priority differentiation
-            normalized_weights = np.ones(num_ues) / num_ues
-        else:
-            # Normalize priorities to weights
+        if np.sum(priorities) > 0:
             normalized_weights = priorities / np.sum(priorities)
-            
-            # Apply fairness adjustment
-            fairness_adjustment = self.config['fairness_factor'] / num_ues
-            normalized_weights = (
-                normalized_weights * (1 - self.config['fairness_factor']) +
-                fairness_adjustment
-            )
+        else:
+            normalized_weights = np.ones(num_ues) / num_ues
         
-        # Fill the weights array
+        # Fill weights array
         for i in range(num_ues):
             weights[i * 2] = RNTIs[i]
             weights[i * 2 + 1] = normalized_weights[i]
         
         return weights
-    
-    def log_metrics(self, ue_data, weights):
-        """Log scheduling metrics for analysis"""
-        
-        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # Calculate average estimated latency
-        avg_estimated_latency = np.mean(list(self.ue_latency_estimates.values())) if self.ue_latency_estimates else 0
-        
-        # Log to file
-        log_entry = {
-            'timestamp': current_time,
-            'num_ues': len(ue_data),
-            'avg_estimated_latency': avg_estimated_latency,
-            'ue_latencies': dict(self.ue_latency_estimates),
-            'weights': weights.tolist() if len(weights) > 0 else [],
-            'total_throughput': sum(data['Tx_brate'] for data in ue_data.values())
-        }
-        
-        # Write to log file
-        with open('muApp5_latency_log.txt', 'a') as f:
-            f.write(f"{log_entry}\n")
 
 
-def muapp5_latency_scheduler(eval_episodes, scheduler_config=None):
+def muapp5_model_scheduler(eval_episodes, model_path=None, config=None):
     """
-    Main scheduling loop for muApp5 latency optimization
+    Main scheduling loop for muApp5 using trained models
     """
     
-    global total_brate, avg_CQIs
+    global total_brate
     
     # Initialize scheduler
-    scheduler = LatencyOptimizedScheduler(scheduler_config)
+    scheduler = LatencyModelScheduler(model_path, config)
     
-    print(f"🚀 Starting muApp5 Latency-Optimized Scheduler")
-    print(f"📊 Target latency: {scheduler.config['target_latency_ms']}ms")
+    print(f"🚀 Starting muApp5 Model-based Latency Scheduler")
+    print(f"� Model: {'Loaded' if scheduler.model else 'Algorithmic Fallback'}")
     print(f"🔄 Running for {eval_episodes} episodes")
     
     for episode in range(eval_episodes):
@@ -223,35 +262,32 @@ def muapp5_latency_scheduler(eval_episodes, scheduler_config=None):
             ue_data = get_metrics_multi()
             
             if not ue_data:
-                print("⚠️  No UE data available, skipping episode")
+                if episode % 1000 == 0:
+                    print("⚠️  No UE data available")
                 time.sleep(0.1)
                 continue
             
-            # Calculate latency-optimized weights
-            weights = scheduler.calculate_scheduling_weights(ue_data)
+            # Get scheduling weights
+            weights = scheduler.get_scheduling_weights(ue_data)
             
             if len(weights) > 0:
                 # Send scheduling weights to EdgeRIC
                 send_scheduling_weight(weights, True)
                 
-                # Log metrics
-                scheduler.log_metrics(ue_data, weights)
-                
-                # Update global metrics for compatibility
+                # Update global metrics
                 txb = [data['Tx_brate'] for data in ue_data.values()]
                 total_brate.append(np.sum(txb))
                 
                 # Log progress
                 if episode % 100 == 0:
-                    avg_latency = np.mean(list(scheduler.ue_latency_estimates.values()))
-                    print(f"Episode {episode}: {len(ue_data)} UEs, Avg Est. Latency: {avg_latency:.1f}ms")
+                    model_success_rate = scheduler.model_success_count / (scheduler.model_success_count + scheduler.model_failure_count) * 100 if (scheduler.model_success_count + scheduler.model_failure_count) > 0 else 0
+                    print(f"Episode {episode}: {len(ue_data)} UEs, Model Success: {model_success_rate:.1f}%")
                     
                     # Show current scheduling decision
                     for i in range(0, len(weights), 2):
                         rnti = int(weights[i])
                         weight = weights[i+1]
-                        est_latency = scheduler.ue_latency_estimates.get(rnti, 0)
-                        print(f"  UE {rnti}: weight={weight:.3f}, est_latency={est_latency:.1f}ms")
+                        print(f"  UE {rnti}: weight={weight:.3f}")
             
             # Small delay to prevent overwhelming the system
             time.sleep(0.001)  # 1ms delay
@@ -263,49 +299,40 @@ def muapp5_latency_scheduler(eval_episodes, scheduler_config=None):
             print(f"❌ Error in episode {episode}: {e}")
             time.sleep(0.1)
     
+    # Final statistics
+    total_episodes = scheduler.model_success_count + scheduler.model_failure_count
+    if total_episodes > 0:
+        print(f"\n📊 Final Statistics:")
+        print(f"  Model Success: {scheduler.model_success_count}/{total_episodes} ({scheduler.model_success_count/total_episodes*100:.1f}%)")
+        print(f"  Algorithmic Fallback: {scheduler.model_failure_count}/{total_episodes} ({scheduler.model_failure_count/total_episodes*100:.1f}%)")
+    
     print(f"✅ muApp5 completed {episode + 1} episodes")
     return total_brate
 
 
 def main():
-    """Main function for muApp5 latency scheduler"""
+    """Main function for muApp5 model-based scheduler"""
     
-    parser = argparse.ArgumentParser(description="muApp5 Real-time Latency-Optimized Scheduler")
-    parser.add_argument("--episodes", type=int, default=10000, 
+    parser = argparse.ArgumentParser(description="muApp5 Model-based Latency Scheduler")
+    parser.add_argument("--episodes", type=int, default=10000,
                        help="Number of scheduling episodes to run")
-    parser.add_argument("--target-latency", type=float, default=10.0,
-                       help="Target latency in milliseconds")
-    parser.add_argument("--latency-weight", type=float, default=0.3,
-                       help="Weight for latency in scheduling decisions")
-    parser.add_argument("--backlog-weight", type=float, default=0.3,
-                       help="Weight for backlog in scheduling decisions")
-    parser.add_argument("--cqi-weight", type=float, default=0.4,
-                       help="Weight for CQI in scheduling decisions")
-    parser.add_argument("--fairness-factor", type=float, default=0.1,
-                       help="Fairness adjustment factor")
-    parser.add_argument("--config-file", type=str, default=None,
-                       help="JSON configuration file")
+    parser.add_argument("--model-path", type=str, default="muApp5_trained_model.pt",
+                       help="Path to the trained model file")
+    parser.add_argument("--default-latency", type=float, default=10.0,
+                       help="Default latency estimate in milliseconds")
+    parser.add_argument("--no-fallback", action="store_true",
+                       help="Disable algorithmic fallback")
     
     args = parser.parse_args()
     
     # Build scheduler configuration
     scheduler_config = {
-        'target_latency_ms': args.target_latency,
-        'backlog_weight': args.backlog_weight,
-        'cqi_weight': args.cqi_weight,
-        'latency_weight': args.latency_weight,
-        'fairness_factor': args.fairness_factor,
-        'history_window': 10,
+        'default_latency_ms': args.default_latency,
+        'model_path': args.model_path,
+        'use_algorithmic_fallback': not args.no_fallback,
     }
     
-    # Load config file if provided
-    if args.config_file and os.path.exists(args.config_file):
-        import json
-        with open(args.config_file, 'r') as f:
-            file_config = json.load(f)
-            scheduler_config.update(file_config)
-    
-    print("🎯 muApp5: Real-time Latency-Optimized Scheduler")
+    print("🎯 muApp5: Model-based Latency Scheduler")
     print("=" * 50)
     print("Configuration:")
     for key, value in scheduler_config.items():
@@ -322,7 +349,7 @@ def main():
         print("   Continuing without Redis integration...")
     
     # Set algorithm identifier
-    algorithm_name = "muApp5 Latency Scheduler"
+    algorithm_name = "muApp5 Model-based Latency Scheduler"
     try:
         redis_db.set("algo", algorithm_name)
         print(f"📝 Algorithm set in Redis: {algorithm_name}")
@@ -331,7 +358,7 @@ def main():
     
     # Run the scheduler
     start_time = time.time()
-    throughput_history = muapp5_latency_scheduler(args.episodes, scheduler_config)
+    throughput_history = muapp5_model_scheduler(args.episodes, args.model_path, scheduler_config)
     end_time = time.time()
     
     # Summary statistics
@@ -341,7 +368,6 @@ def main():
     print(f"🔄 Episodes completed: {args.episodes}")
     print(f"📈 Average throughput: {np.mean(throughput_history):.2f} bps")
     print(f"📊 Total data transferred: {np.sum(throughput_history):.2f} bytes")
-    print(f"📁 Log file: muApp5_latency_log.txt")
     
     return 0
 

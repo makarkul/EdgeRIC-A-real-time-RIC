@@ -1,25 +1,42 @@
-# muApp5: Real-time Latency-Optimized Scheduler
+# muApp5: Model-based Latency-Optimized Scheduler
 
 ## Overview
 
-muApp5 is a **real-time latency-optimized scheduler** designed to work directly with EdgeRIC's live system. Unlike muApp4 (which is for training) and muApp1 (which uses pre-trained models), muApp5 implements **algorithmic latency optimization** that adapts in real-time.
+muApp5 is a **model-based latency-optimized scheduler** that uses trained models from muApp4 for real-time scheduling decisions. It provides the best of both worlds: the sophistication of machine learning with the practicality of real-time deployment.
+
+## Architecture
+
+```
+muApp4 (Training) → Trained Model → muApp5 (Inference) → EdgeRIC
+```
+
+### Training Pipeline (muApp4)
+1. **Train** latency-optimized RL model with advanced reward functions
+2. **Save** best model to `muApp5/muApp5_trained_model.pt`
+3. **Evaluate** model performance in simulation
+
+### Inference Pipeline (muApp5)  
+1. **Load** trained model from muApp4
+2. **Convert** real-time UE data to model input format
+3. **Inference** using trained model for scheduling decisions
+4. **Fallback** to algorithmic scheduler if model fails
 
 ## Key Features
 
-### ✅ **Direct Integration**
-- Uses the same state space as muApp1: `[Backlog, CQI, Buffer_Size]`
-- No model conversion or training required
-- Immediate deployment capability
+### ✅ **Model-based Optimization**
+- Uses sophisticated RL models trained specifically for latency optimization
+- Learns optimal scheduling policies from training data
+- Adapts to complex patterns in network behavior
 
-### ✅ **Real-time Latency Optimization**
-- **Latency Estimation**: Estimates UE latency based on backlog, CQI, and service history
-- **Adaptive Scheduling**: Prioritizes UEs with higher latency urgency
-- **Channel Awareness**: Considers CQI for efficient resource allocation
+### ✅ **Robust Deployment**  
+- Automatic model loading from muApp4 training outputs
+- Intelligent fallback to algorithmic scheduling
+- Real-time latency estimation when not available in training
 
-### ✅ **Configurable Policies**
-- **Aggressive Latency**: Minimizes latency at all costs
-- **Balanced**: Balances latency, throughput, and fairness
-- **Fairness Focused**: Ensures fair resource allocation
+### ✅ **State Space Adaptation**
+- Converts muApp1 format `[BL, CQI, MB]` to muApp4 format `[BL, CQI, LAT, MB, LP]`
+- Estimates missing latency values using heuristics
+- Maintains compatibility with existing EdgeRIC system
 
 ## Architecture
 
