@@ -18,6 +18,7 @@ sysctl -w net.ipv4.ip_forward=1
 
 # Start container and setup screen session
 docker run -it --rm --network=$1 --name edgeric_$2 --privileged=true \
+    -p 5555:5555 \
     -e DISPLAY=$DISPLAY \
     --env=NVIDIA_DRIVER_CAPABILITiES=all \
     --env=NVIDIA-VISIBLE_DEVICES=all \
