@@ -79,6 +79,7 @@ class EdgeRICWebDashboard:
             html.Div([
                 html.Div(id='status-indicator', style={'display': 'inline-block', 'marginRight': 20}),
                 html.Div(id='message-count', style={'display': 'inline-block', 'marginRight': 20}),
+                html.Div(id='dashboard-status', style={'display': 'inline-block', 'marginRight': 20}),
             ], style={'textAlign': 'center', 'marginBottom': 20, 'padding': 10, 'backgroundColor': '#f0f0f0'}),
             
             # Graphs in a 2x3 grid
@@ -133,6 +134,7 @@ class EdgeRICWebDashboard:
              Output('snr-graph', 'figure'),
              Output('status-indicator', 'children'),
              Output('message-count', 'children'),
+             Output('dashboard-status', 'children'),
              Output('legend-area', 'children')],
             [Input('interval-component', 'n_intervals')]
         )
@@ -152,6 +154,7 @@ class EdgeRICWebDashboard:
             ])
             
             message_div = html.Div(f"Messages: {self.message_count}")
+            dashboard_status_div = html.Div("Dashboard: Active")
             
             # Create graphs with sequence-based x-axis
             latency_fig = self.create_metric_graph('latency', 'Latency (μs)', max_points)
@@ -160,11 +163,11 @@ class EdgeRICWebDashboard:
             cqi_fig = self.create_metric_graph('cqi', 'CQI', max_points)
             snr_fig = self.create_metric_graph('snr', 'SNR (dB)', max_points)
             
-            # Legend
-            legend_content = self.create_legend()
+            # Legend (simplified)
+            legend_content = html.Div("")  # Empty legend area
             
             return (latency_fig, backlog_fig, throughput_fig, cqi_fig, snr_fig,
-                   status_div, message_div, legend_content)
+                   status_div, message_div, dashboard_status_div, legend_content)
     
     def create_metric_graph(self, metric, y_label, max_points):
         """Create a graph for a specific metric with sequence-based x-axis"""
@@ -208,28 +211,18 @@ class EdgeRICWebDashboard:
         x_max = max(max_data_points, 10) if max_data_points > 0 else max_points
         fig.update_layout(
             title=f'UE {y_label}',
-            xaxis_title='Sample Index',
+            xaxis_title='',  # Remove x-axis title
             yaxis_title=y_label,
             xaxis=dict(
                 range=[1, x_max],
                 type='linear'
             ),
-            showlegend=True,
-            legend=dict(x=1.02, y=1),
+            showlegend=False,  # Remove legend from individual graphs
             margin=dict(l=50, r=50, t=50, b=50),
             height=300
         )
         
         return fig
-    
-    def create_legend(self):
-        """Create legend/info area"""
-        legend_items = []
-        
-        # Just show a simple status
-        legend_items.append(html.P("Dashboard Status: Active"))
-        
-        return html.Div(legend_items)
     
     def connect_to_bridge(self):
         """Connect to the TCP bridge"""
