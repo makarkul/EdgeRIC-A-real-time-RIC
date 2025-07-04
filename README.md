@@ -51,6 +51,57 @@ After building, start the complete EdgeRIC setup:
 ./start_edgeric_with_screen.sh bridge test
 ```
 
+This will start all EdgeRIC components including:
+- GNU Radio simulator
+- srsRAN EPC and eNB
+- srsRAN UE instances
+- Traffic generators
+- EdgeRIC applications
+- **TCP bridge for web dashboard (starts automatically after 10-second delay)**
+- **Web dashboard (starts automatically in Window 11)**
+
+### Web Dashboard
+
+EdgeRIC includes a modern web-based dashboard that **runs automatically inside the container**:
+
+#### Accessing the Dashboard
+
+After starting EdgeRIC with the startup script, the web dashboard is immediately available at:
+
+**http://localhost:8050**
+
+No additional setup required! The dashboard automatically:
+- Connects to the EdgeRIC system via TCP bridge
+- Shows real-time metrics from all active UEs
+- Updates every second with live data
+
+#### Manual Dashboard Launch
+
+If you need to run the dashboard manually (for debugging or development):
+
+```bash
+# Option 1: Use the launcher script (shows all options)
+./launch_dashboard.sh
+
+# Option 2: Run directly on host (requires EdgeRIC container running)
+python3 web_dashboard.py
+```
+
+#### Dashboard Features
+
+- **Real-time Metrics**: Latency, backlog, throughput, CQI, and SNR
+- **Rolling Window**: Configurable sample count (100-5000 points)
+- **Running Averages**: Configurable averaging window (10-100 samples)
+- **Multi-UE Support**: RNTI selection with multi-select dropdown
+- **Connection Monitoring**: Real-time connection status with LED indicator
+- **Modern UI**: Clean, responsive interface with monospace fonts
+
+#### Accessing the Dashboard
+
+Open your browser and navigate to: **http://localhost:8050**
+
+The dashboard will automatically connect to the EdgeRIC system and display real-time metrics from all active UEs.
+
 ### Legacy Build Scripts
 
 The following legacy build scripts are still available but deprecated:

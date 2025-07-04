@@ -225,6 +225,7 @@ class mac_interface_rlc
 {
 public:
   virtual int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) = 0;
+  virtual void rlc_latency_report(uint16_t rnti, uint32_t lcid, uint32_t latency_us) = 0;
 };
 
 class mac_interface_rrc

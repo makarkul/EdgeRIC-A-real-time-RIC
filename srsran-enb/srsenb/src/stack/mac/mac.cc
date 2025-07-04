@@ -161,6 +161,9 @@ void mac::start_pcap_net(srsran::mac_pcap_net* pcap_net_)
  *
  *******************************************************/
 std::map<uint16_t, uint32_t> backlogBuffer;
+// Latency collection data structures
+std::map<uint16_t, std::vector<uint32_t>> rnti_latency_samples;  // Store latency samples per RNTI
+std::mutex latency_mutex;  // Protect latency data structure
 
 int mac::rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue)
 {
@@ -683,17 +686,45 @@ void mac::ric_comm()
   edgeric::setTXbytes(tx_bytes_ues);
   // tx_bytes_ues.clear();
   
-  // Populate latency with dummy values for now
+  // Populate latency with real values from RLC layer
   latency_ues.clear();
-  for (auto& u : ue_db) {
-    uint16_t rnti = u.first;
-    latency_ues[rnti] = 100 + (rnti % 50);  // Dummy latency: 100-149 ms based on RNTI
+  {
+    std::lock_guard<std::mutex> lock(latency_mutex);
+    for (auto& u : ue_db) {
+      uint16_t rnti = u.first;
+      
+      // Calculate average latency from collected samples
+      if (rnti_latency_samples.find(rnti) != rnti_latency_samples.end() && 
+          !rnti_latency_samples[rnti].empty()) {
+        uint64_t sum = 0;
+        for (uint32_t sample : rnti_latency_samples[rnti]) {
+          sum += sample;
+        }
+        latency_ues[rnti] = sum / rnti_latency_samples[rnti].size();  // Average latency in microseconds
+      } else {
+        latency_ues[rnti] = 0;  // No latency data available
+      }
+    }
   }
   edgeric::setLatency(latency_ues);
 
   edgeric::printmyvariables();
   edgeric::send_to_er_protobuf();
 
+}
+
+void mac::rlc_latency_report(uint16_t rnti, uint32_t lcid, uint32_t latency_us)
+{
+  // Thread-safe latency sample collection
+  std::lock_guard<std::mutex> lock(latency_mutex);
+  
+  // Add latency sample to the collection for this RNTI
+  rnti_latency_samples[rnti].push_back(latency_us);
+  
+  // Keep only recent samples (sliding window of 10 samples)
+  if (rnti_latency_samples[rnti].size() > 10) {
+    rnti_latency_samples[rnti].erase(rnti_latency_samples[rnti].begin());
+  }
 }
 
 void mac::calFairness_dl(sched_interface::dl_sched_res_t sched_result_dl)

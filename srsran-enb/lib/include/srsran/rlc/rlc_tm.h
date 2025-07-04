@@ -68,6 +68,7 @@ public:
   void     write_pdu(uint8_t* payload, uint32_t nof_bytes) override;
 
   void set_bsr_callback(bsr_callback_t callback) override;
+  void set_latency_callback(latency_callback_t callback) override;
 
 private:
   byte_buffer_pool*          pool = nullptr;
@@ -77,6 +78,7 @@ private:
 
   std::mutex     bsr_callback_mutex;
   bsr_callback_t bsr_callback;
+  latency_callback_t latency_callback;
 
   std::atomic<bool> tx_enabled = {true};
 

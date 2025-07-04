@@ -7,6 +7,10 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+# Get sudo access upfront for cleanup operations
+echo "EdgeRIC Stop Script - Getting sudo access for cleanup operations..."
+sudo -v
+
 CONTAINER_NAME="edgeric_$1"
 
 echo "Stopping EdgeRIC container: $CONTAINER_NAME"

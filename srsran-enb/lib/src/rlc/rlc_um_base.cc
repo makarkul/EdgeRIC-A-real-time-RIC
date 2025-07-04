@@ -195,6 +195,11 @@ void rlc_um_base::set_bsr_callback(bsr_callback_t callback)
   tx->set_bsr_callback(std::move(callback));
 }
 
+void rlc_um_base::set_latency_callback(latency_callback_t callback)
+{
+  tx->set_latency_callback(std::move(callback));
+}
+
 /****************************************************************************
  * Helper functions
  ***************************************************************************/
@@ -270,6 +275,11 @@ bool rlc_um_base::rlc_um_base_tx::has_data()
 void rlc_um_base::rlc_um_base_tx::set_bsr_callback(bsr_callback_t callback)
 {
   bsr_callback = callback;
+}
+
+void rlc_um_base::rlc_um_base_tx::set_latency_callback(latency_callback_t callback)
+{
+  latency_callback = callback;
 }
 
 void rlc_um_base::rlc_um_base_tx::write_sdu(unique_byte_buffer_t sdu)

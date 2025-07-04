@@ -70,6 +70,18 @@ void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
   init(pdcp_, rrc_, timers_, lcid_);
 }
 
+void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srsran::timer_handler*     timers_,
+               uint32_t                   lcid_,
+               bsr_callback_t             bsr_callback_,
+               latency_callback_t         latency_callback_)
+{
+  bsr_callback = bsr_callback_;
+  latency_callback = latency_callback_;
+  init(pdcp_, rrc_, timers_, lcid_);
+}
+
 void rlc::reset_metrics()
 {
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
@@ -452,6 +464,7 @@ int rlc::add_bearer(uint32_t lcid, const rlc_config_t& cnfg)
   }
 
   rlc_entity->set_bsr_callback(bsr_callback);
+  rlc_entity->set_latency_callback(latency_callback);
 
   if (not rlc_array.emplace(lcid, std::move(rlc_entity)).second) {
     logger.error("Error inserting RLC entity in to array.");
@@ -637,6 +650,19 @@ void rlc_bearer_metrics_print(const rlc_bearer_metrics_t& metrics)
   std::cout << "num_rx_pdu_bytes=" << metrics.num_rx_pdu_bytes << "\n";
   std::cout << "num_lost_pdus=" << metrics.num_lost_pdus << "\n";
   std::cout << "num_lost_sdus=" << metrics.num_lost_sdus << "\n";
+}
+
+void rlc::set_latency_callback(latency_callback_t callback)
+{
+  latency_callback = callback;
+  
+  // Set the callback for all existing bearers
+  rwlock_read_guard lock(rwlock);
+  for (auto& bearer : rlc_array) {
+    if (bearer.second) {
+      bearer.second->set_latency_callback(callback);
+    }
+  }
 }
 
 } // namespace srsran

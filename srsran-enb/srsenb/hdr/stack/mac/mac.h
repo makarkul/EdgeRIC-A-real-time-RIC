@@ -98,6 +98,7 @@ public:
   int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, mac_lc_ch_cfg_t* cfg) override;
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override;
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) override;
+  void rlc_latency_report(uint16_t rnti, uint32_t lcid, uint32_t latency_us) override;
 
   /* Handover-related */
   uint16_t reserve_new_crnti(const sched_interface::ue_cfg_t& ue_cfg) override;

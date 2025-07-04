@@ -110,6 +110,7 @@ public:
    * BSR Callback
    ***************************************************************************/
   void set_bsr_callback(bsr_callback_t callback) final;
+  void set_latency_callback(latency_callback_t callback) final;
 
 protected:
   // Common variables needed/provided by parent class
@@ -147,6 +148,7 @@ public:
     virtual void     stop()                                                        = 0;
 
     void set_bsr_callback(bsr_callback_t callback);
+    void set_latency_callback(latency_callback_t callback);
 
     int              write_sdu(unique_byte_buffer_t sdu);
     bool             sdu_queue_is_full();
@@ -159,6 +161,7 @@ public:
     std::string           rb_name;
 
     bsr_callback_t bsr_callback;
+    latency_callback_t latency_callback;
 
     // Tx SDU buffers
     byte_buffer_queue tx_sdu_queue;

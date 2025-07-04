@@ -54,6 +54,13 @@ public:
             srsran::timer_handler*     timers_,
             uint32_t                   lcid_,
             bsr_callback_t             bsr_callback_);
+
+  void init(srsue::pdcp_interface_rlc* pdcp_,
+            srsue::rrc_interface_rlc*  rrc_,
+            srsran::timer_handler*     timers_,
+            uint32_t                   lcid_,
+            bsr_callback_t             bsr_callback_,
+            latency_callback_t         latency_callback_);
   void stop();
 
   void get_metrics(rlc_metrics_t& m, const uint32_t nof_tti);
@@ -93,6 +100,7 @@ public:
   void resume_bearer(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
   bool has_bearer(uint32_t lcid);
+  void set_latency_callback(latency_callback_t callback);
 
 private:
   void reset_metrics();
@@ -113,6 +121,7 @@ private:
   uint32_t default_lcid = 0;
 
   bsr_callback_t bsr_callback = nullptr;
+  latency_callback_t latency_callback = nullptr;
 
   // Timer needed for metrics calculation
   std::chrono::high_resolution_clock::time_point metrics_tp;
