@@ -112,12 +112,23 @@ The following legacy build scripts are still available but deprecated:
 
 ## Features
 
+### EdgeRIC Applications (muApps)
+
+EdgeRIC includes several intelligent scheduling applications:
+
+- **muApp1**: Real-time inference using pre-trained RL models
+- **muApp2**: Reinforcement learning training for throughput optimization  
+- **muApp3**: Advanced scheduling algorithms and baselines
+- **muApp4**: Latency-aware RL training with specialized reward functions
+- **muApp5**: Real-time algorithmic latency optimization (no training required)
+
 ### Latency Monitoring
 
-EdgeRIC now includes latency monitoring capabilities:
+EdgeRIC now includes comprehensive latency monitoring capabilities:
 - Real-time latency metrics collection from srsRAN eNB
 - Latency data display in EdgeRIC Python controller
 - Integrated protobuf messaging for latency values
+- Web dashboard visualization of latency trends
 
 ## Development
 

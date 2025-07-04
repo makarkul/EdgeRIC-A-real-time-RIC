@@ -1,0 +1,31 @@
+{
+    "target_latency_ms": 10,
+    "backlog_weight": 0.3,
+    "cqi_weight": 0.4,
+    "latency_weight": 0.3,
+    "fairness_factor": 0.1,
+    "history_window": 10,
+    "scheduling_policies": {
+        "aggressive_latency": {
+            "target_latency_ms": 5,
+            "latency_weight": 0.6,
+            "backlog_weight": 0.2,
+            "cqi_weight": 0.2,
+            "fairness_factor": 0.05
+        },
+        "balanced": {
+            "target_latency_ms": 10,
+            "latency_weight": 0.3,
+            "backlog_weight": 0.3,
+            "cqi_weight": 0.4,
+            "fairness_factor": 0.1
+        },
+        "fairness_focused": {
+            "target_latency_ms": 15,
+            "latency_weight": 0.2,
+            "backlog_weight": 0.3,
+            "cqi_weight": 0.3,
+            "fairness_factor": 0.2
+        }
+    }
+}
