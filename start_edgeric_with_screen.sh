@@ -19,6 +19,7 @@ sysctl -w net.ipv4.ip_forward=1
 # Start container and setup screen session
 docker run -it --rm --network=$1 --name edgeric_$2 --privileged=true \
     -p 5555:5555 \
+    -p 8050:8050 \
     -e DISPLAY=$DISPLAY \
     --env=NVIDIA_DRIVER_CAPABILITiES=all \
     --env=NVIDIA-VISIBLE_DEVICES=all \
@@ -29,9 +30,10 @@ docker run -it --rm --network=$1 --name edgeric_$2 --privileged=true \
     nlpurnhyun/edgeric_base_oaic \
     bash -c "
         cd /home/EdgeRIC-A-real-time-RIC && 
-        echo 'Installing screen utility...' &&
+        echo 'Installing required packages...' &&
         apt update -y && apt install -y screen &&
-        echo 'Setting up screen session with 10 windows...' &&
+        pip3 install dash plotly pandas pyzmq --quiet &&
+        echo 'Setting up screen session with 12 windows...' &&
         screen -dmS edgeric -s /bin/bash &&
         sleep 1 &&
         screen -S edgeric -X screen -t 'GNU-Radio' &&
@@ -80,6 +82,17 @@ docker run -it --rm --network=$1 --name edgeric_$2 --privileged=true \
         screen -S edgeric -X screen -t 'muApp3-Monitor' &&
         screen -S edgeric -p 'muApp3-Monitor' -X stuff 'cd /home/EdgeRIC-A-real-time-RIC/edgeric/muApp3\n' &&
         screen -S edgeric -p 'muApp3-Monitor' -X stuff 'python3 muApp3_monitor_terminal.py\n' &&
+        echo 'Waiting for EdgeRIC system to stabilize before starting TCP bridge...' &&
+        sleep 10 &&
+        echo 'Starting TCP bridge for web dashboard...' &&
+        screen -S edgeric -X screen -t 'TCP-Bridge' &&
+        screen -S edgeric -p 'TCP-Bridge' -X stuff 'cd /home/EdgeRIC-A-real-time-RIC/edgeric\n' &&
+        screen -S edgeric -p 'TCP-Bridge' -X stuff 'python3 tcp_bridge.py\n' &&
+        sleep 3 &&
+        echo 'Starting web dashboard inside container...' &&
+        screen -S edgeric -X screen -t 'Web-Dashboard' &&
+        screen -S edgeric -p 'Web-Dashboard' -X stuff 'cd /home/EdgeRIC-A-real-time-RIC\n' &&
+        screen -S edgeric -p 'Web-Dashboard' -X stuff 'python3 web_dashboard.py\n' &&
         echo 'All screen sessions started:' &&
         echo '  Window 0: GNU-Radio (python3 top_block_2ue_no_gui.py)' &&
         echo '  Window 1: EPC (./run_epc.sh)' &&
@@ -91,6 +104,8 @@ docker run -it --rm --network=$1 --name edgeric_$2 --privileged=true \
         echo '  Window 7: muApp1 (muApp1_run_DL_scheduling.py)' &&
         echo '  Window 8: Redis-Config (redis-cli set scheduling_algorithm)' &&
         echo '  Window 9: muApp3-Monitor (muApp3_monitor_terminal.py)' &&
+        echo '  Window 10: TCP-Bridge (tcp_bridge.py)' &&
+        echo '  Window 11: Web-Dashboard (web_dashboard.py)' &&
         echo '' &&
         echo 'Use \"screen -r edgeric\" to attach to screen session' &&
         echo 'Navigation: Ctrl+a then n (next), Ctrl+a then p (previous), Ctrl+a then d (detach)' &&
@@ -98,6 +113,11 @@ docker run -it --rm --network=$1 --name edgeric_$2 --privileged=true \
         echo '' &&
         echo 'NOTE: Monitor Window 3 (UE) for connection logs before traffic starts' &&
         echo 'NOTE: Redis server starts in Window 6, then EdgeRIC apps in Windows 7-9' &&
+        echo 'NOTE: TCP bridge starts in Window 10 after 10-second delay' &&
+        echo 'NOTE: Web dashboard starts in Window 11 after TCP bridge is ready' &&
+        echo '' &&
+        echo 'WEB DASHBOARD: Available at http://localhost:8050 (running inside container)' &&
+        echo 'Dashboard automatically connects to TCP bridge and shows real-time metrics' &&
         echo '' &&
         bash
     "

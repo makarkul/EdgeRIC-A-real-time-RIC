@@ -68,19 +68,17 @@ class TCPBridge:
                     self.tcp_publisher.send(message)
                     
                     message_count += 1
-                    print(f"Forwarded message {message_count} ({len(message)} bytes)")
                     
-                    if message_count % 10 == 0:
+                    if message_count % 100 == 0:
                         # Parse and display some info
                         try:
                             metrics = metrics_pb2.Metrics()
                             metrics.ParseFromString(message)
-                            print(f"Bridged {message_count} messages. Latest TTI: {metrics.tti_cnt}, UEs: {len(metrics.ue_metrics)}")
+                            print(f"✓ Bridged {message_count} messages. Latest TTI: {metrics.tti_cnt}, UEs: {len(metrics.ue_metrics)}")
                         except Exception as e:
-                            print(f"Bridged {message_count} messages. Parse error: {e}")
+                            print(f"✓ Bridged {message_count} messages. Parse error: {e}")
                 else:
-                    # No message available
-                    print("No message available from IPC")
+                    # No message available, short sleep
                     time.sleep(0.1)
                             
             except zmq.Again:
