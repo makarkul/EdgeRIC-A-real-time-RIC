@@ -79,27 +79,7 @@ class EdgeRICWebDashboard:
             html.Div([
                 html.Div(id='status-indicator', style={'display': 'inline-block', 'marginRight': 20}),
                 html.Div(id='message-count', style={'display': 'inline-block', 'marginRight': 20}),
-                html.Div(id='ue-count', style={'display': 'inline-block'}),
             ], style={'textAlign': 'center', 'marginBottom': 20, 'padding': 10, 'backgroundColor': '#f0f0f0'}),
-            
-            # Max points selector
-            html.Div([
-                html.Label("Max Points: ", style={'marginRight': 10}),
-                dcc.Dropdown(
-                    id='max-points-dropdown',
-                    options=[
-                        {'label': '100 points', 'value': 100},
-                        {'label': '200 points', 'value': 200},
-                        {'label': '500 points', 'value': 500},
-                        {'label': '1000 points', 'value': 1000},
-                        {'label': '2000 points', 'value': 2000},
-                        {'label': '5000 points', 'value': 5000},
-                        {'label': '10000 points', 'value': 10000}
-                    ],
-                    value=5000,  # Default 5000 points
-                    style={'width': '150px', 'display': 'inline-block'}
-                )
-            ], style={'textAlign': 'center', 'marginBottom': 20}),
             
             # Graphs in a 2x3 grid
             html.Div([
@@ -153,16 +133,16 @@ class EdgeRICWebDashboard:
              Output('snr-graph', 'figure'),
              Output('status-indicator', 'children'),
              Output('message-count', 'children'),
-             Output('ue-count', 'children'),
              Output('legend-area', 'children')],
-            [Input('interval-component', 'n_intervals'),
-             Input('max-points-dropdown', 'value')]
+            [Input('interval-component', 'n_intervals')]
         )
-        def update_graphs(n_intervals, max_points):
-            return self.create_all_graphs(max_points)
-        
-    def create_all_graphs(self, max_points):
+        def update_graphs(n_intervals):
+            return self.create_all_graphs(self.max_points)
+    
+    def create_all_graphs(self, max_points=None):
         """Create all graphs with current data using sequence-based plotting"""
+        if max_points is None:
+            max_points = self.max_points
         with self.data_lock:
             # Status indicators
             status_color = "green" if self.connection_status == "Connected" else "red"
@@ -172,7 +152,6 @@ class EdgeRICWebDashboard:
             ])
             
             message_div = html.Div(f"Messages: {self.message_count}")
-            ue_div = html.Div(f"Active UEs: {len(self.ue_data)}")
             
             # Create graphs with sequence-based x-axis
             latency_fig = self.create_metric_graph('latency', 'Latency (μs)', max_points)
@@ -185,7 +164,7 @@ class EdgeRICWebDashboard:
             legend_content = self.create_legend()
             
             return (latency_fig, backlog_fig, throughput_fig, cqi_fig, snr_fig,
-                   status_div, message_div, ue_div, legend_content)
+                   status_div, message_div, legend_content)
     
     def create_metric_graph(self, metric, y_label, max_points):
         """Create a graph for a specific metric with sequence-based x-axis"""
@@ -207,6 +186,10 @@ class EdgeRICWebDashboard:
             if not values:
                 continue
                 
+            # Apply running average for all metrics except latency
+            if metric != 'latency':
+                values = self.calculate_running_average(values, 50)
+                
             # Create x-axis as sample indices (1, 2, 3, ...)
             x_vals = list(range(1, len(values) + 1))
             
@@ -225,7 +208,7 @@ class EdgeRICWebDashboard:
         x_max = max(max_data_points, 10) if max_data_points > 0 else max_points
         fig.update_layout(
             title=f'UE {y_label}',
-            xaxis_title=f'Sample Index (last {max_data_points} points, max {max_points})',
+            xaxis_title='Sample Index',
             yaxis_title=y_label,
             xaxis=dict(
                 range=[1, x_max],
@@ -243,20 +226,8 @@ class EdgeRICWebDashboard:
         """Create legend/info area"""
         legend_items = []
         
-        if self.ue_data:
-            legend_items.append(html.H4("Active UEs:"))
-            for rnti in sorted(self.ue_data.keys()):
-                latest_data = ""
-                if self.ue_data[rnti]['timestamps']:
-                    latest_time = list(self.ue_data[rnti]['timestamps'])[-1]
-                    latest_data = f" (last seen: {int(time.time() - latest_time)}s ago)"
-                
-                legend_items.append(html.P(f"UE {rnti}{latest_data}"))
-        else:
-            legend_items.append(html.P("No active UEs"))
-        
-        legend_items.append(html.Hr())
-        legend_items.append(html.P(f"Dashboard running for: {int(time.time() - self.last_update)}s"))
+        # Just show a simple status
+        legend_items.append(html.P("Dashboard Status: Active"))
         
         return html.Div(legend_items)
     
@@ -359,6 +330,22 @@ class EdgeRICWebDashboard:
             self.context.term()
         
         print("Dashboard stopped")
+    
+    def calculate_running_average(self, data, window_size=30):
+        """Calculate running average of the last window_size points"""
+        if len(data) < window_size:
+            return data
+        
+        averaged_data = []
+        for i in range(len(data)):
+            if i < window_size - 1:
+                # For early points, use all available data
+                averaged_data.append(sum(data[:i+1]) / (i+1))
+            else:
+                # For points with enough history, use window_size
+                averaged_data.append(sum(data[i-window_size+1:i+1]) / window_size)
+        
+        return averaged_data
 
 def signal_handler(signum, frame):
     """Handle Ctrl+C gracefully"""
