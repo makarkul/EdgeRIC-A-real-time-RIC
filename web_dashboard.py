@@ -55,6 +55,7 @@ class EdgeRICWebDashboard:
         # Statistics
         self.message_count = 0
         self.last_update = time.time()
+        self.last_message_time = time.time()
         self.connection_status = "Disconnected"
         
         # Threading
@@ -72,56 +73,112 @@ class EdgeRICWebDashboard:
     def setup_layout(self):
         """Setup the web dashboard layout"""
         self.app.layout = html.Div([
-            html.H1("EdgeRIC Real-Time Metrics Dashboard", 
-                   style={'textAlign': 'center', 'marginBottom': 30}),
-            
-            # Status bar
-            html.Div([
-                html.Div(id='status-indicator', style={'display': 'inline-block', 'marginRight': 20}),
-                html.Div(id='message-count', style={'display': 'inline-block', 'marginRight': 20}),
-                html.Div(id='dashboard-status', style={'display': 'inline-block', 'marginRight': 20}),
-            ], style={'textAlign': 'center', 'marginBottom': 20, 'padding': 10, 'backgroundColor': '#f0f0f0'}),
-            
+            html.H1("EdgeRIC Metrics Dashboard", 
+                   style={'textAlign': 'center', 'marginBottom': 30, 'fontFamily': 'DejaVu Sans Mono, monospace'}),
+
             # Graphs in a 2x3 grid
             html.Div([
                 html.Div([
-                    dcc.Graph(id='latency-graph', style={'height': '300px'})
+                    dcc.Graph(id='latency-graph', style={'height': '300px', 'fontFamily': 'DejaVu Sans Mono, monospace'})
                 ], className='four columns'),
-                
+
                 html.Div([
-                    dcc.Graph(id='backlog-graph', style={'height': '300px'})
+                    dcc.Graph(id='backlog-graph', style={'height': '300px', 'fontFamily': 'DejaVu Sans Mono, monospace'})
                 ], className='four columns'),
-                
+
                 html.Div([
-                    dcc.Graph(id='throughput-graph', style={'height': '300px'})
+                    dcc.Graph(id='throughput-graph', style={'height': '300px', 'fontFamily': 'DejaVu Sans Mono, monospace'})
                 ], className='four columns'),
             ], className='row'),
-            
+
             html.Div([
                 html.Div([
-                    dcc.Graph(id='cqi-graph', style={'height': '300px'})
+                    dcc.Graph(id='cqi-graph', style={'height': '300px', 'fontFamily': 'DejaVu Sans Mono, monospace'})
                 ], className='four columns'),
-                
+
                 html.Div([
-                    dcc.Graph(id='snr-graph', style={'height': '300px'})
+                    dcc.Graph(id='snr-graph', style={'height': '300px', 'fontFamily': 'DejaVu Sans Mono, monospace'})
                 ], className='four columns'),
-                
+
                 html.Div([
-                    # Legend and controls
-                    html.Div(id='legend-area', style={'height': '300px', 'padding': 20})
-                ], className='four columns'),
+                    # Control panel centered in the column
+                    html.Div([
+                        html.Div([
+                            html.Label("Plot Samples:", style={'fontFamily': 'DejaVu Sans Mono, monospace', 'marginRight': 10, 'width': '140px', 'display': 'inline-block', 'textAlign': 'left', 'lineHeight': '36px'}),
+                            dcc.Dropdown(
+                                id='points-dropdown',
+                                options=[
+                                    {'label': '100', 'value': 100},
+                                    {'label': '500', 'value': 500},
+                                    {'label': '1000', 'value': 1000},
+                                    {'label': '2000', 'value': 2000},
+                                    {'label': '5000', 'value': 5000}
+                                ],
+                                value=5000,
+                                placeholder="Select...",
+                                style={'fontFamily': 'DejaVu Sans Mono, monospace', 'width': '120px', 'display': 'inline-block'}
+                            ),
+                        ], style={'marginBottom': 15, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'flex-start'}),
+
+                        html.Div([
+                            html.Label("Avg. Window:", style={'fontFamily': 'DejaVu Sans Mono, monospace', 'marginRight': 10, 'width': '140px', 'display': 'inline-block', 'textAlign': 'left', 'lineHeight': '36px'}),
+                            dcc.Dropdown(
+                                id='averaging-dropdown',
+                                options=[
+                                    {'label': '10', 'value': 10},
+                                    {'label': '30', 'value': 30},
+                                    {'label': '50', 'value': 50},
+                                    {'label': '100', 'value': 100}
+                                ],
+                                value=50,
+                                placeholder="Select...",
+                                style={'fontFamily': 'DejaVu Sans Mono, monospace', 'width': '120px', 'display': 'inline-block'}
+                            ),
+                        ], style={'marginBottom': 15, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'flex-start'}),
+
+                        html.Div([
+                            html.Label("RNTI Selection:", style={'fontFamily': 'DejaVu Sans Mono, monospace', 'marginRight': 10, 'width': '140px', 'display': 'inline-block', 'textAlign': 'left', 'lineHeight': '36px'}),
+                            dcc.Dropdown(
+                                id='rnti-dropdown',
+                                options=[],  # Will be populated dynamically
+                                value=[],
+                                multi=True,
+                                placeholder="Select RNTIs...",
+                                style={'fontFamily': 'DejaVu Sans Mono, monospace', 'width': '120px', 'display': 'inline-block'},
+                                maxHeight=200,
+                                optionHeight=35
+                            ),
+                        ], style={'marginBottom': 15, 'display': 'flex', 'alignItems': 'center', 'justifyContent': 'flex-start'}),
+                    ], style={'padding': 20, 'backgroundColor': 'transparent', 'borderRadius': 5, 'height': '300px', 'display': 'flex', 'flexDirection': 'column', 'justifyContent': 'center', 'margin': '0 auto', 'width': '280px'})
+                ], className='four columns', style={'display': 'flex', 'justifyContent': 'center'}),
             ], className='row'),
-            
+
+            # Bottom status bar (thinner gutter)
+            html.Div([
+                html.Div([
+                    html.Span(id='status-led', style={'fontSize': '20px', 'marginRight': '10px', 'fontFamily': 'DejaVu Sans Mono, monospace'})
+                ], style={'display': 'inline-block', 'float': 'left'}),
+
+                html.Div([
+                    html.Span(id='connection-status', style={'fontFamily': 'DejaVu Sans Mono, monospace'})
+                ], style={'display': 'inline-block', 'float': 'left', 'marginLeft': '5px'}),
+
+                html.Div([
+                    html.Span(id='message-count', style={'fontFamily': 'DejaVu Sans Mono, monospace'})
+                ], style={'display': 'inline-block', 'float': 'right'})
+            ], style={'position': 'fixed', 'bottom': 0, 'left': 0, 'right': 0, 'height': '28px', 
+                     'backgroundColor': '#f0f0f0', 'padding': '4px 12px', 'borderTop': '1px solid #ddd'}),
+
             # Auto-refresh interval
             dcc.Interval(
                 id='interval-component',
                 interval=1000,  # Update every second
                 n_intervals=0
             ),
-            
+
             # Store for data
             dcc.Store(id='data-store')
-        ])
+        ], style={'fontFamily': 'DejaVu Sans Mono, monospace', 'paddingBottom': '40px'})
     
     def setup_callbacks(self):
         """Setup Dash callbacks for interactivity"""
@@ -132,96 +189,133 @@ class EdgeRICWebDashboard:
              Output('throughput-graph', 'figure'),
              Output('cqi-graph', 'figure'),
              Output('snr-graph', 'figure'),
-             Output('status-indicator', 'children'),
+             Output('status-led', 'children'),
+             Output('connection-status', 'children'),
              Output('message-count', 'children'),
-             Output('dashboard-status', 'children'),
-             Output('legend-area', 'children')],
-            [Input('interval-component', 'n_intervals')]
+             Output('rnti-dropdown', 'options'),
+             Output('rnti-dropdown', 'value')],
+            [Input('interval-component', 'n_intervals'),
+             Input('points-dropdown', 'value'),
+             Input('averaging-dropdown', 'value'),
+             Input('rnti-dropdown', 'value')]
         )
-        def update_graphs(n_intervals):
-            return self.create_all_graphs(self.max_points)
+        def update_graphs(n_intervals, points_to_plot, averaging_window, selected_rntis):
+            return self.create_all_graphs(points_to_plot, averaging_window, selected_rntis)
     
-    def create_all_graphs(self, max_points=None):
+    def create_all_graphs(self, points_to_plot=None, averaging_window=50, selected_rntis=None):
         """Create all graphs with current data using sequence-based plotting"""
-        if max_points is None:
-            max_points = self.max_points
+        if points_to_plot is None:
+            points_to_plot = self.max_points
+        
         with self.data_lock:
-            # Status indicators
-            status_color = "green" if self.connection_status == "Connected" else "red"
-            status_div = html.Div([
-                html.Span("●", style={'color': status_color, 'fontSize': '20px', 'marginRight': '5px'}),
-                html.Span(f"Status: {self.connection_status}")
-            ])
+            # Get available RNTIs
+            available_rntis = sorted(self.ue_data.keys())
             
-            message_div = html.Div(f"Messages: {self.message_count}")
-            dashboard_status_div = html.Div("Dashboard: Active")
+            # Create RNTI dropdown options
+            rnti_options = [{'label': 'All', 'value': 'all'}]
+            rnti_options.extend([{'label': f'UE {rnti}', 'value': rnti} for rnti in available_rntis])
+            # Handle RNTI selection
+            if selected_rntis is None or not selected_rntis or 'all' in selected_rntis:
+                selected_rntis = available_rntis
+            
+            # Status indicators with connection timeout check
+            current_time = time.time()
+            connection_timeout = 3.0  # Reduced to 3 seconds for faster detection
+            
+            # Check if data collection thread is still running and if we've received recent messages
+            if (self.connection_status == "Connected" and 
+                ((current_time - self.last_message_time) > connection_timeout or 
+                 not self.running or 
+                 (self.data_thread and not self.data_thread.is_alive()))):
+                self.connection_status = "Disconnected"
+            
+            status_led = "🔴" if self.connection_status != "Connected" else "🟢"
+            connection_text = f"Connected" if self.connection_status == "Connected" else "Disconnected"
+            message_text = f"{self.message_count} samples"
             
             # Create graphs with sequence-based x-axis
-            latency_fig = self.create_metric_graph('latency', 'Latency (μs)', max_points)
-            backlog_fig = self.create_metric_graph('backlog', 'Backlog (bytes)', max_points)
-            throughput_fig = self.create_metric_graph('throughput', 'TX Bytes', max_points)
-            cqi_fig = self.create_metric_graph('cqi', 'CQI', max_points)
-            snr_fig = self.create_metric_graph('snr', 'SNR (dB)', max_points)
+            latency_fig = self.create_metric_graph('latency', 'Latency', points_to_plot, averaging_window, selected_rntis)
+            backlog_fig = self.create_metric_graph('backlog', 'Backlog', points_to_plot, averaging_window, selected_rntis)
+            throughput_fig = self.create_metric_graph('throughput', 'TX Bytes', points_to_plot, averaging_window, selected_rntis)
+            cqi_fig = self.create_metric_graph('cqi', 'CQI', points_to_plot, averaging_window, selected_rntis)
+            snr_fig = self.create_metric_graph('snr', 'SNR', points_to_plot, averaging_window, selected_rntis)
             
-            # Legend (simplified)
-            legend_content = html.Div("")  # Empty legend area
+            # Set default selected RNTIs if none selected
+            if not selected_rntis:
+                selected_rntis = available_rntis
             
             return (latency_fig, backlog_fig, throughput_fig, cqi_fig, snr_fig,
-                   status_div, message_div, dashboard_status_div, legend_content)
+                   status_led, connection_text, message_text, rnti_options, selected_rntis)
     
-    def create_metric_graph(self, metric, y_label, max_points):
+    def create_metric_graph(self, metric, y_label, max_points, averaging_window=50, selected_rntis=None):
         """Create a graph for a specific metric with sequence-based x-axis"""
         fig = go.Figure()
         
         colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
         color_idx = 0
         
+        if selected_rntis is None:
+            selected_rntis = sorted(self.ue_data.keys())
+        
         max_data_points = 0
-        for rnti in sorted(self.ue_data.keys()):
+        for rnti in selected_rntis:
+            if rnti in self.ue_data:
+                ue_data = self.ue_data[rnti]
+                values = list(ue_data[metric])
+                # Only consider the last max_points for plotting
+                values = values[-max_points:]
+                max_data_points = max(max_data_points, len(values))
+            
+        for rnti in selected_rntis:
+            if rnti not in self.ue_data:
+                continue
             ue_data = self.ue_data[rnti]
             values = list(ue_data[metric])
-            max_data_points = max(max_data_points, len(values))
-            
-        for rnti in sorted(self.ue_data.keys()):
-            ue_data = self.ue_data[rnti]
-            values = list(ue_data[metric])
-            
+            # Only consider the last max_points for plotting
+            values = values[-max_points:]
             if not values:
                 continue
-                
             # Apply running average for all metrics except latency
             if metric != 'latency':
-                values = self.calculate_running_average(values, 50)
-                
+                values = self.calculate_running_average(values, averaging_window)
             # Create x-axis as sample indices (1, 2, 3, ...)
             x_vals = list(range(1, len(values) + 1))
-            
             color = colors[color_idx % len(colors)]
             fig.add_trace(go.Scatter(
                 x=x_vals,
                 y=values,
                 mode='lines+markers',
-                name=f'UE {rnti}',
+                showlegend=False,  # Remove legend from each plot
                 line=dict(color=color, width=2),
                 marker=dict(size=4)
             ))
             color_idx += 1
-        
         # Configure layout for sequence-based plotting
         x_max = max(max_data_points, 10) if max_data_points > 0 else max_points
+        
+        # Set appropriate y-axis labels with units
+        y_axis_labels = {
+            'Latency': 'Latency (μs)',
+            'Backlog': 'Backlog (bytes)', 
+            'TX Bytes': 'TX Bytes',
+            'CQI': 'CQI',
+            'SNR': 'SNR (dB)'
+        }
+        y_axis_title = y_axis_labels.get(y_label, y_label)
+        
         fig.update_layout(
-            title=f'UE {y_label}',
+            title=f'{y_label}',
             xaxis_title='',  # Remove x-axis title
-            yaxis_title=y_label,
+            yaxis_title=y_axis_title,
             xaxis=dict(
                 range=[1, x_max],
                 type='linear'
             ),
-            showlegend=False,  # Remove legend from individual graphs
+            showlegend=False,
             margin=dict(l=50, r=50, t=50, b=50),
-            height=300
+            height=300,
+            font=dict(family="DejaVu Sans Mono, monospace")
         )
-        
         return fig
     
     def connect_to_bridge(self):
@@ -259,16 +353,33 @@ class EdgeRICWebDashboard:
     
     def data_collection_loop(self):
         """Main data collection loop"""
+        consecutive_failures = 0
+        max_failures = 3  # Reduced for faster detection
+        
         while self.running:
             try:
                 message = self.subscriber.recv(zmq.NOBLOCK)
                 self.process_message(message)
+                consecutive_failures = 0  # Reset failure count on successful receive
                 
             except zmq.Again:
                 continue
             except Exception as e:
+                consecutive_failures += 1
                 print(f"Error in data collection: {e}")
-                break
+                
+                if consecutive_failures >= max_failures:
+                    print(f"Too many consecutive failures ({consecutive_failures}), marking as disconnected")
+                    with self.data_lock:
+                        self.connection_status = "Disconnected"
+                    break  # Exit the loop on persistent failures
+                    
+                time.sleep(0.1)  # Brief pause before retrying
+        
+        # Ensure disconnected status when loop exits
+        with self.data_lock:
+            self.connection_status = "Disconnected"
+        print("Data collection loop ended")
     
     def process_message(self, message):
         """Process a received metrics message"""
@@ -280,6 +391,7 @@ class EdgeRICWebDashboard:
             
             with self.data_lock:
                 self.message_count += 1
+                self.last_message_time = current_time  # Update last message time
                 
                 for ue_metrics in metrics.ue_metrics:
                     rnti = ue_metrics.rnti
@@ -311,11 +423,19 @@ class EdgeRICWebDashboard:
     def stop(self):
         """Stop the dashboard"""
         print("Stopping dashboard...")
+        
+        # Set running to False first
         self.running = False
         
-        if self.data_thread:
-            self.data_thread.join(timeout=1)
+        # Update connection status immediately
+        with self.data_lock:
+            self.connection_status = "Disconnected"
         
+        # Wait for data thread to finish
+        if self.data_thread:
+            self.data_thread.join(timeout=2)
+        
+        # Close ZMQ resources
         if self.subscriber:
             self.subscriber.close()
         
@@ -324,7 +444,7 @@ class EdgeRICWebDashboard:
         
         print("Dashboard stopped")
     
-    def calculate_running_average(self, data, window_size=30):
+    def calculate_running_average(self, data, window_size=50):
         """Calculate running average of the last window_size points"""
         if len(data) < window_size:
             return data
